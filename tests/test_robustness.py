@@ -1,3 +1,16 @@
+#!/usr/bin/env python3
+"""
+測試 StreamingASRPipeline 的穩健性（記憶體洩漏、長時間運行）
+
+執行結果會自動保存在 tests/results/ 目錄下。
+
+預期行為：
+- 測試 1: 靜音輸入不應導致崩潰
+- 測試 2: 長時間運行不應有明顯記憶體洩漏（< 100MB 增長）
+
+最新執行結果: tests/results/test_robustness_latest.txt
+參考結果: tests/results/test_robustness_reference.txt
+"""
 
 import torch
 import torchaudio
@@ -5,12 +18,15 @@ import time
 import psutil
 import os
 import numpy as np
-from pathlib import Path
+from test_utils import TestResultSaver, get_test_audio_path
 from omnilingual_asr.streaming import StreamingASRPipeline
 
+
 def get_memory_usage():
+    """獲取當前進程的記憶體使用量（MB）"""
     process = psutil.Process(os.getpid())
-    return process.memory_info().rss / 1024 / 1024 # MB
+    return process.memory_info().rss / 1024 / 1024
+
 
 def test_robustness(model_card="omniASR_CTC_300M"):
     print(f"Robustness Testing with {model_card}...")
@@ -39,9 +55,9 @@ def test_robustness(model_card="omniASR_CTC_300M"):
     
     # 2. Long Running Simulation (Memory Leak Check)
     print("\n[Test 2] Long Running Simulation (Repeating Audio)")
+    
     # Load real audio
-    project_root = Path(__file__).parent.parent
-    audio_path = project_root / "什麼是上帝的道.mp3"
+    audio_path = get_test_audio_path()
     waveform, _ = torchaudio.load(str(audio_path))
     audio = waveform.squeeze(0).numpy()
     if waveform.shape[0] > 1:
@@ -63,8 +79,6 @@ def test_robustness(model_card="omniASR_CTC_300M"):
             
             if len(mem_usages) % 100 == 0:
                 mem_usages.append(get_memory_usage())
-                
-        # Flush between repetitions? No, keep streaming.
     
     list(pipeline.finish())
     end_time = time.time()
@@ -79,5 +93,7 @@ def test_robustness(model_card="omniASR_CTC_300M"):
     else:
         print("Memory usage stable.")
 
+
 if __name__ == "__main__":
-    test_robustness()
+    with TestResultSaver("test_robustness"):
+        test_robustness()

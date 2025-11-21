@@ -1,0 +1,19 @@
+測試開始時間: 2025-11-20 13:31:13
+======================================================================
+
+Robustness Testing with omniASR_CTC_300M...
+Loading model: omniASR_CTC_300M...
+Streaming pipeline initialized.
+
+[Test 1] Silence Input (10 seconds)
+Memory change: 509.17 MB
+
+[Test 2] Long Running Simulation (Repeating Audio)
+Processing 4855 chunks...
+Total time: 37.71s
+Initial Memory: 1600.84 MB
+Final Memory: 1601.77 MB
+Memory usage stable.
+
+======================================================================
+測試結束時間: 2025-11-20 13:31:54

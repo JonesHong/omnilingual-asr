@@ -98,10 +98,17 @@ def clean_asr_output(text: str) -> str:
     Returns:
         Cleaned text
     """
+    # Remove newlines and extra whitespace
+    text = text.replace('\n', ' ').replace('\r', ' ')
+    
     # First remove character-level duplicates
     text = remove_char_duplicates(text, max_repeat=1)
     
     # Then remove word-level duplicates
     text = remove_word_duplicates(text)
+    
+    # Clean up multiple spaces
+    import re
+    text = re.sub(r'\s+', ' ', text)
     
     return text.strip()

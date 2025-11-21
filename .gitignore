@@ -74,4 +74,11 @@ dmypy.json
 # Profiling
 .prof
 
+# Project-specific
 self_results/
+
+# Test Results (keep reference files, ignore timestamped runs)
+tests/results/*_[0-9]*.txt
+!tests/results/*_reference.txt
+!tests/results/*_latest.txt
+!tests/results/README.md

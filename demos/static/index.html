@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omnilingual ASR Demo</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🎤 Omnilingual ASR</h1>
+            <div class="subtitle">Advanced Streaming & File Transcription</div>
+        </header>
+
+        <!-- Settings Panel -->
+        <div class="settings-panel">
+            <div class="form-group">
+                <label for="model-select">Model</label>
+                <select id="model-select"></select>
+            </div>
+            <div class="form-group">
+                <label for="language-select">Language</label>
+                <select id="language-select"></select>
+            </div>
+            <button id="toggle-advanced" class="btn btn-secondary" style="margin-left: auto;">
+                ⚙️ Advanced
+            </button>
+        </div>
+
+        <!-- Advanced Parameters Panel -->
+        <div id="advanced-panel" class="advanced-panel hidden">
+            <!-- File Mode Parameters -->
+            <div id="file-params" class="param-group">
+                <h3>File Transcription Parameters</h3>
+                <div class="param-row">
+                    <div class="form-group">
+                        <label for="timestamp-format">Timestamp Format</label>
+                        <select id="timestamp-format">
+                            <option value="none">None</option>
+                            <option value="simple">Simple [00:05]</option>
+                            <option value="detailed">Detailed [00:05 - 00:08]</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="time-format">Time Format</label>
+                        <select id="time-format">
+                            <option value="auto">Auto</option>
+                            <option value="seconds">Seconds (5.2s)</option>
+                            <option value="mm:ss">MM:SS</option>
+                            <option value="hh:mm:ss">HH:MM:SS</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="param-row">
+                    <div class="form-group">
+                        <label for="chunk-duration">Chunk Duration (s)</label>
+                        <input type="number" id="chunk-duration" value="30" min="10" max="40" step="5">
+                    </div>
+                    <div class="form-group">
+                        <label for="overlap">Overlap (s)</label>
+                        <input type="number" id="overlap" value="1" min="0" max="5" step="0.5">
+                    </div>
+                </div>
+                <div class="param-row">
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="split-on-silence">
+                        <label for="split-on-silence">Split on Silence (VAD)</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mic Mode Parameters -->
+            <div id="mic-params" class="param-group hidden">
+                <h3>Streaming Parameters</h3>
+                <div class="param-row">
+                    <div class="form-group">
+                        <label for="context-duration">Context Duration (ms)</label>
+                        <input type="number" id="context-duration" value="4000" min="2000" max="10000" step="500">
+                    </div>
+                    <div class="form-group">
+                        <label for="min-speech">Min Speech Duration (ms)</label>
+                        <input type="number" id="min-speech" value="250" min="100" max="1000" step="50">
+                    </div>
+                </div>
+                <div class="param-row">
+                    <div class="form-group">
+                        <label for="min-silence">Min Silence Duration (ms)</label>
+                        <input type="number" id="min-silence" value="500" min="100" max="2000" step="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="max-segment">Max Segment Duration (ms)</label>
+                        <input type="number" id="max-segment" value="2000" min="1000" max="5000" step="500">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button id="tab-file" class="tab-btn active">📁 File Upload</button>
+            <button id="tab-mic" class="tab-btn">🎙️ Microphone</button>
+        </div>
+
+        <!-- File Transcription Panel -->
+        <div id="panel-file" class="content-area">
+            <div id="upload-area" class="upload-area">
+                <p>Drag & drop audio file here or click to select</p>
+                <input type="file" id="file-input" accept="audio/*" hidden>
+            </div>
+
+            <div class="controls">
+                <button id="transcribe-btn" class="btn btn-primary" disabled>
+                    <span>⚡ Transcribe</span>
+                </button>
+            </div>
+
+            <div id="progress-bar" class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+
+            <div id="file-result" class="result-box">
+                <div class="result-placeholder">Transcription result will appear here...</div>
+            </div>
+        </div>
+
+        <!-- Microphone Streaming Panel -->
+        <div id="panel-mic" class="content-area hidden">
+            <div class="status-indicator">
+                <div id="status-dot" class="dot"></div>
+                <span id="status-text">Ready</span>
+            </div>
+
+            <div class="controls">
+                <button id="start-btn" class="btn btn-primary">
+                    <span>▶ Start</span>
+                </button>
+                <button id="stop-btn" class="btn btn-danger" disabled>
+                    <span>⏹ Stop</span>
+                </button>
+                <button id="clear-btn" class="btn">
+                    <span>🗑 Clear</span>
+                </button>
+            </div>
+
+            <div id="mic-result-container" class="result-box">
+                <span id="committed-text" class="stable-text"></span>
+                <span id="preview-text" class="preview-text"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/audio.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>

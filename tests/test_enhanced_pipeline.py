@@ -1,11 +1,24 @@
 #!/usr/bin/env python3
 """
 測試 EnhancedASRPipeline 的音訊切割與時間戳記功能
+
+執行結果會自動保存在 tests/results/ 目錄下。
+
+預期行為：
+- 測試 1: 無時間戳記，純文字輸出
+- 測試 2-3: 固定時間格式 (MM:SS, HH:MM:SS)
+- 測試 4: 自訂時間戳記模板
+- 測試 5: JSON 格式輸出，包含 VAD 切割驗證
+- 測試 6: 錯誤處理，chunk_duration 超過限制應拋出異常
+- 測試 7: 自動時間格式 (長音訊 >60s) 應使用 MM:SS
+- 測試 8: 自動時間格式 (短音訊 <60s) 應使用 SECONDS
+
+最新執行結果: tests/results/test_enhanced_pipeline_latest.txt
+參考結果: tests/results/test_enhanced_pipeline_reference.txt
 """
 
 import torch
-import torchaudio
-from pathlib import Path
+from test_utils import TestResultSaver, load_audio, get_test_audio_path
 from omnilingual_asr.enhanced_pipeline import (
     EnhancedASRPipeline,
     TimestampFormat,
@@ -13,28 +26,17 @@ from omnilingual_asr.enhanced_pipeline import (
 )
 
 
-def load_audio(audio_path: str, target_sr: int = 16000):
-    """載入音訊"""
-    waveform, sample_rate = torchaudio.load(audio_path)
-    if waveform.shape[0] > 1:
-        waveform = waveform.mean(dim=0, keepdim=True)
-    if sample_rate != target_sr:
-        resampler = torchaudio.transforms.Resample(sample_rate, target_sr)
-        waveform = resampler(waveform)
-    return waveform.squeeze(0), target_sr
-
-
 def test_enhanced_pipeline():
     """測試增強版 Pipeline"""
     
-    audio_path = "/mnt/c/work/omnilingual-asr/什麼是上帝的道.mp3"
+    audio_path = get_test_audio_path()
     
-    if not Path(audio_path).exists():
+    if not audio_path.exists():
         print(f"❌ 找不到音訊檔案: {audio_path}")
         return
     
     # 載入音訊
-    waveform, sr = load_audio(audio_path)
+    waveform, sr = load_audio(str(audio_path))
     audio_duration = len(waveform) / sr
     print(f"音訊長度: {audio_duration:.2f} 秒")
     print()
@@ -108,16 +110,38 @@ def test_enhanced_pipeline():
         lang=["cmn_Hant"],
         chunk_duration=30.0,
         overlap=1.0,
-        timestamp_format=TimestampFormat.SIMPLE,  # 需要非 NONE
+        timestamp_format=TimestampFormat.SIMPLE,
         time_format=TimeFormat.SECONDS,
         timestamp_template="⏱️ {start} | {text}"
     )
     print(result[0])
     print()
     
-    # 測試 5: 錯誤處理 - chunk_duration 超過限制
+    # 測試 5: JSON 格式
     print("=" * 70)
-    print("測試 5: 錯誤處理 - chunk_duration 超過限制")
+    print("測試 5: JSON 格式")
+    print("=" * 70)
+    result = pipeline.transcribe(
+        inp=inp,
+        batch_size=1,
+        lang=["cmn_Hant"],
+        chunk_duration=30.0,
+        overlap=1.0,
+        timestamp_format=TimestampFormat.JSON
+    )
+    import json
+    print(json.dumps(result[0], indent=2, ensure_ascii=False))
+    
+    # Verify dynamic chunking
+    print("\n[VAD 切割驗證] 檢查片段長度是否動態調整:")
+    for i, chunk in enumerate(result[0]):
+        duration = chunk["end"] - chunk["start"]
+        print(f"  Chunk {i+1}: {duration:.2f}s (Start: {chunk['start']:.2f}s, End: {chunk['end']:.2f}s)")
+    print()
+    
+    # 測試 6: 錯誤處理 - chunk_duration 超過限制
+    print("=" * 70)
+    print("測試 6: 錯誤處理 - chunk_duration 超過限制")
     print("=" * 70)
     try:
         result = pipeline.transcribe(
@@ -131,6 +155,49 @@ def test_enhanced_pipeline():
         print(f"✓ 正確捕獲錯誤: {e}")
     print()
 
+    # 測試 7: 自動時間格式 (長音訊 > 60s)
+    print("=" * 70)
+    print("測試 7: 自動時間格式 (長音訊 > 60s)")
+    print("=" * 70)
+    print("預期: 應使用 MM:SS 格式")
+    result = pipeline.transcribe(
+        inp=inp,
+        batch_size=1,
+        lang=["cmn_Hant"],
+        chunk_duration=30.0,
+        overlap=1.0,
+        timestamp_format=TimestampFormat.SIMPLE,
+        time_format=TimeFormat.AUTO
+    )
+    print(result[0])
+    print()
+
+    # 測試 8: 自動時間格式 (短音訊 < 60s)
+    print("=" * 70)
+    print("測試 8: 自動時間格式 (短音訊 < 60s)")
+    print("=" * 70)
+    print("預期: 應使用 SECONDS 格式")
+    
+    # 創建一個短音訊片段
+    short_waveform = waveform[:int(30 * sr)]
+    short_inp = [{
+        "waveform": short_waveform,
+        "sample_rate": sr
+    }]
+    
+    result = pipeline.transcribe(
+        inp=short_inp,
+        batch_size=1,
+        lang=["cmn_Hant"],
+        chunk_duration=30.0,
+        overlap=1.0,
+        timestamp_format=TimestampFormat.SIMPLE,
+        time_format=TimeFormat.AUTO
+    )
+    print(result[0])
+    print()
+
 
 if __name__ == "__main__":
-    test_enhanced_pipeline()
+    with TestResultSaver("test_enhanced_pipeline"):
+        test_enhanced_pipeline()
